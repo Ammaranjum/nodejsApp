@@ -1,7 +1,8 @@
+// filepath: e:\RabbitMQ\consumers\bookConsumer.js
 const amqp = require("amqplib");
 const bookService = require("../services/bookServices");
 
-const consumeMessage = async () => {
+const consumeMessage = async (consumerId) => {
   try {
     const connection = await amqp.connect("amqp://localhost:5672");
     const channel = await connection.createChannel();
@@ -9,10 +10,16 @@ const consumeMessage = async () => {
 
     await channel.assertQueue(queue, { durable: true });
 
+    console.log(`Consumer ${consumerId} is waiting for messages...`);
+
     channel.consume(queue, async (message) => {
       const { action, data } = JSON.parse(message.content.toString());
-      let response;
+      console.log(`Consumer ${consumerId} processing message:`, {
+        action,
+        data,
+      });
 
+      let response;
       switch (action) {
         case "create":
           response = await bookService.createBook(data);
@@ -30,18 +37,12 @@ const consumeMessage = async () => {
           response = { message: "Unknown action" };
       }
 
-      console.log(`Processed message: ${action}`);
+      console.log(`Consumer ${consumerId} finished processing:`, response);
       channel.ack(message);
-
-      // You can send a response back to the publisher or client here if needed.
-      console.log(response);
     });
-
-    console.log("Consumer is waiting for messages...");
   } catch (error) {
-    console.error("Error in consumer:", error);
+    console.error(`Error in consumer ${consumerId}:`, error);
   }
 };
 
-consumeMessage();
 module.exports = { consumeMessage };

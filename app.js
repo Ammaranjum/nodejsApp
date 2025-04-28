@@ -1,3 +1,4 @@
+// filepath: e:\RabbitMQ\app.js
 const express = require("express");
 const connectDB = require("./config/server");
 const bookRoutes = require("./routes/bookRoutes");
@@ -14,8 +15,11 @@ app.use("/api", bookRoutes);
 // Start MongoDB connection
 connectDB();
 
-// Start the consumer in the background
-bookConsumer.consumeMessage(); // This is your consumer method that starts listening to RabbitMQ
+// Start multiple consumer instances
+const consumerCount = 3; // Number of consumers
+for (let i = 1; i <= consumerCount; i++) {
+  bookConsumer.consumeMessage(`Consumer-${i}`);
+}
 
 const PORT = 5000;
 app.listen(PORT, () => {
